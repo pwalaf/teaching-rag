@@ -18,11 +18,9 @@ import ws from "ws";
 
 
 // ─── Config ─────────────────────────────────────────────────
-// Centraliser ici : facile à changer pour tes amis / démos
 
 const CONFIG = {
   // Modèle d'embedding : transforme du texte en vecteur de 384 dimensions.
-  // "all-MiniLM-L6-v2" est léger, gratuit, et très bon pour le retrieval.
   embeddingModel:
     "https://router.huggingface.co/hf-inference/models/sentence-transformers/all-MiniLM-L6-v2/pipeline/feature-extraction",
 
@@ -32,7 +30,7 @@ const CONFIG = {
   // Nombre de chunks retournés au LLM (top-K)
   topK: 3,
 
-  // Seuil de similarité (0 à 1) — en dessous = chunk ignoré
+  // Seuil de similarité (0 à 1)
   similarityThreshold: 0.3,
 
   // Longueur max d'un chunk dans le prompt (en caractères)
@@ -45,8 +43,8 @@ export interface Document {
   id?: string;
   title: string;
   content: string;
-  // Metadata libre : adapte à ton domaine
-  // Ex : { category: "faq" } ou { author: "Alice" } ou {}
+
+  // Ex : { category: "faq" }
   metadata?: Record<string, unknown>;
 }
 
@@ -74,9 +72,7 @@ const supabase = createClient(
 );
 
 // ============================================================
-// ÉTAPE 1 — EMBED
-// Convertit du texte en tableau de nombres (vecteur).
-// Des textes sémantiquement proches auront des vecteurs proches.
+// ÉTAPE 1 — EMBED (texte --> vecteur numérique)
 // ============================================================
 
 export async function embed(text: string): Promise<number[]> {
@@ -105,8 +101,6 @@ export async function embed(text: string): Promise<number[]> {
 
 // ============================================================
 // ÉTAPE 2 — INGEST (stocker un document)
-// Génère l'embedding du contenu, puis l'insère en base.
-// À appeler une fois par document, pas à chaque question.
 // ============================================================
 
 export async function ingest(doc: Document): Promise<void> {
@@ -125,10 +119,6 @@ export async function ingest(doc: Document): Promise<void> {
 
 // ============================================================
 // ÉTAPE 3 — SEARCH (retrieval)
-// Calcule la similarité cosinus entre la question et tous les chunks.
-// Retourne les CONFIG.topK plus proches.
-//
-// Prérequis Supabase : une fonction RPC "match_documents" (voir README).
 // ============================================================
 
 export async function search(
@@ -151,9 +141,6 @@ export async function search(
 
 // ============================================================
 // ÉTAPE 4 — GENERATE (génération augmentée)
-// Injecte les chunks retrouvés dans le prompt système,
-// puis demande au LLM de répondre en se basant UNIQUEMENT
-// sur ces sources.
 // ============================================================
 
 export async function generate(
@@ -199,7 +186,6 @@ ${context}`;
 // ============================================================
 // POINT D'ENTRÉE PUBLIC — ask()
 // Orchestre les 4 étapes.
-// C'est la seule fonction que ton controller appelle.
 // ============================================================
 
 export async function ask(
